@@ -59,7 +59,10 @@ def generateLineageData2(n_cells=300,
                          n_states=20, n_genes_per_state=100,
                          p_branching=.5, seed=12345,
                          filename=None,
-                         basename='lin'):
+                         basename='lin',
+                         branch_ratio = .0,
+                         n_genes_per_common_state=0,
+                         num_common_state=2):
 
     np.random.seed(seed)
 
@@ -164,63 +167,45 @@ def generateLineageData2(n_cells=300,
                 data[(s * n_genes_per_state + g), :] = np.exp(-0.5/sigma**2 * t_lineage_distance[g_cellmax[g], :] * t_lineage_distance[g_cellmax[g], :])
 
     # Optional rule II: set of genes expressed commonly in different branches
-    import pdb; pdb.set_trace()
 
-    # find leaves
-    tree_leaves = np.where(np.asarray(lin_tree.degree(mode='out')) == 0)[0]
-    # select the k longest branches, k given by ratio
-    leaves_branches = lin_tree.get_shortest_paths(v=0, to=tree_leaves)
-    leaves_branches_length = [[lin_tree.degree(mode='all')[i] for i in lb][::-1].index(3) for lb in leaves_branches]
-    ratio = .67
-    k = int(len(tree_leaves) * ratio)
-    used_branches_id = np.argsort(leaves_branches_length)[-k:]
-    used_branches = [leaves_branches[i] for i in used_branches_id]
-    # select last 2 states from each branch (TODO make that a parameter)
-    num_common_state = 2
-    
-
-    for i in range(num_common_state):
-
-        s_cells_ids = np.random.choice(range(1000), size=n_genes_per_state, replace=True)
-
-        ss = [ub[-(i+1)] for ub in used_branches]
-
-        [[cells_by_state[s][x] for x in ['up', 'down1']] for s in ss]
+    if branch_ratio > 0:
+        # find leaves
+        tree_leaves = np.where(np.asarray(lin_tree.degree(mode='out')) == 0)[0]
+        # select the k longest branches, k given by ratio
+        leaves_branches = lin_tree.get_shortest_paths(v=0, to=tree_leaves)
+        leaves_branches_length = [[lin_tree.degree(mode='all')[i] for i in lb][::-1].index(3) for lb in leaves_branches]
+        k = int(len(tree_leaves) * branch_ratio)
+        used_branches_id = np.argsort(leaves_branches_length)[-k:]
+        used_branches = [leaves_branches[i] for i in used_branches_id]
         
+        data_com = np.zeros((num_common_state * n_genes_per_common_state, n_cells))
 
-        [len(cells_by_state[s]['up']) for s in ss]
+        for d in range(num_common_state):
 
-        [len(cells_by_state[s]['down1']) for s in ss]
+            s_cells_ids = np.random.choice(range(1000), size=n_genes_per_common_state, replace=True) / 1000.0
 
-        if i == 0:
-            s_cells = [cells_by_state[s]['up'] for s in ss]
-        else:
-            s_cells = [] CONTINUE HERE with up and down1
-        
-        if len(s_cells) > 0: # happens if many states and few cells
+            # ss = [ub[-(d+1)] for ub in used_branches]
 
-            # g_cellmax = np.random.choice(s_cells, size=n_genes_per_state, replace=True)
+            if d == 0:
+                # s_cells = [cells_by_state[s]['up'] for s in ss]
+                s_cells = [cells_by_state[ub[-(d+1)]]['up'] for ub in used_branches]
+            else:
+                # s_cells = [np.hstack([cells_by_state[s]['up'], cells_by_state[s]['down1']]) for s in ss]
+                s_cells = [np.hstack([cells_by_state[ub[-(d+1)]]['up'], cells_by_state[ub[-(d+1)]]['down1']]) for ub in used_branches]
             
-            
+            if min([len(sc) for sc in s_cells]) > 0: # happens if many states and few cells
 
-            g_cellmax1 = s_cells[0][rescale(s_cells_ids)]
-            g_cellmax2 = s_cells[1][rescale(s_cells_ids)]
-        
-            gene_names = gene_names + [basename+ str(s).zfill(len(str(n_states))) + 'g' + str(i).zfill(len(str(n_genes_per_state))) for i in range(n_genes_per_state)]
-
-            for g in range(n_genes_per_state):
-
-                data[(s * n_genes_per_state + g), :] = 
-
-                np.exp(-0.5/sigma**2 * t_lineage_distance[g_cellmax1[g], :] * t_lineage_distance[g_cellmax1[g], :])
-
-                +
+                # g_cellmax = np.random.choice(s_cells, size=n_genes_per_state, replace=True)
                 
-                np.exp(-0.5/sigma**2 * t_lineage_distance[g_cellmax2[g], :] * t_lineage_distance[g_cellmax2[g], :])
+                g_cellmaxs = [s_c[np.floor(len(s_c) * s_cells_ids).astype(int)] for s_c in s_cells]
+            
+                gene_names = gene_names + ['com' + str(d).zfill(len(str(n_states))) + 'g' + str(i).zfill(len(str(n_genes_per_common_state))) for i in range(n_genes_per_common_state)]
 
+                for g in range(n_genes_per_common_state):
 
+                    data_com[(d * n_genes_per_common_state + g), :] = reduce(lambda x,y: x+y, [np.exp(-0.5/sigma**2 * t_lineage_distance[g_cellmax[g], :] * t_lineage_distance[g_cellmax[g], :]) for g_cellmax in g_cellmaxs])
 
-
+        data = np.vstack((data, data_com))
 
     return {'data': data, 'state_tree': lin_tree, 'cells_edgeid': cells_edgeid, 'cells_t': cells_t, 'cells_by_state': cells_by_state, 'gene_names': gene_names}
 
@@ -346,9 +331,15 @@ def generateCellCycleData2(n_cells=171, n_cc_phases=7,
 
 
 
-def generateDataset(n_cells, n_lin_states, n_genes_per_lin_state, n_cc_states, n_genes_per_cc_phase, n_unexpressed_genes, p_branching):
+def generateDataset(n_cells, n_lin_states, n_genes_per_lin_state, n_cc_states, n_genes_per_cc_phase, n_unexpressed_genes, p_branching, common_branch_ratio, n_genes_per_common_state, num_common_state):
 
-    directory_name = 'synthetic_data_'+"_".join([str(nls)+'x'+str(n_genes_per_lin_state[id])+'p'+str(p_branching[id])+'lin'+str(id) for id, nls in enumerate(n_lin_states)])+str(n_cc_states)+'_cc_'+str(n_cells)+'cells_'+str(n_unexpressed_genes)+'unexp'
+    # import pdb; pdb.set_trace()
+
+    lin_names = [str(nls)+'x'+str(n_genes_per_lin_state[id])+'p'+str(p_branching[id])+'lin'+str(id) for id, nls in enumerate(n_lin_states)]
+
+    lin_names2 = [l + '+' + str(num_common_state) + 'x' + str(n_genes_per_common_state) + 'r' + str(common_branch_ratio[i]) if common_branch_ratio[i] > 0 else l for i,l in enumerate(lin_names)]
+
+    directory_name = 'synthetic_data_' + "_".join(lin_names2) +  '_'+str(n_cc_states)+'x'+str(n_genes_per_cc_phase)+'cc_'+str(n_cells)+'cells_'+str(n_unexpressed_genes)+'unexp'
 
     if not os.path.exists(directory_name):
         os.mkdir(directory_name, 0755)
@@ -367,7 +358,7 @@ def generateDataset(n_cells, n_lin_states, n_genes_per_lin_state, n_cc_states, n
 
     for id, nls in enumerate(n_lin_states):
 
-        lin_list.append(generateLineageData2(n_cells=n_cells, n_states=nls, n_genes_per_state=n_genes_per_lin_state[id], p_branching=p_branching[id], seed=1234, basename='l'+'iouea'[id]+'n'))
+        lin_list.append(generateLineageData2(n_cells=n_cells, n_states=nls, n_genes_per_state=n_genes_per_lin_state[id], p_branching=p_branching[id], branch_ratio=common_branch_ratio[id], n_genes_per_common_state=n_genes_per_common_state, num_common_state=num_common_state, seed=1234, basename='l'+'iouea'[id]+'n'))
 
         igraph.plot(lin_list[id]['state_tree'], directory_name+"/artificial_lineage_"+str(id)+".pdf",
                     layout=lin_list[id]['state_tree'].layout_reingold_tilford(root=[0]),
@@ -426,21 +417,26 @@ def generateDataset(n_cells, n_lin_states, n_genes_per_lin_state, n_cc_states, n
     # Generate Cell Cycle data
     ##########################
 
-    cc2 = generateCellCycleData2(n_cells=n_cells, n_cc_phases=n_cc_states,
+    # state status for each cell
+    if n_cc_states > 0 and n_genes_per_cc_phase > 0:
+
+        cc2 = generateCellCycleData2(n_cells=n_cells, n_cc_phases=n_cc_states,
                                            n_genes_per_phase=n_genes_per_cc_phase, seed=12345)
 
-    # state status for each cell
-    cc_state_status = np.zeros((n_cells)).astype(int)
-    for k, v in cc2['cells_by_state'].iteritems():
-        cc_state_status[np.hstack(v.values())] = k
+        cc_state_status = np.zeros((n_cells)).astype(int)
+        for k, v in cc2['cells_by_state'].iteritems():
+            cc_state_status[np.hstack(v.values())] = k
 
-    igraph.plot(cc2['cc_graph'], directory_name+"/cc_graph.pdf", vertex_color=[scolors[i] for i in range(n_cc_states)])
+        igraph.plot(cc2['cc_graph'], directory_name+"/cc_graph.pdf", vertex_color=[scolors[i] for i in range(n_cc_states)])
 
-    fig = plt.figure(figsize=(6, 6))
-    ax = fig.add_subplot(111)
-    plt.imshow(cc2['data'][:, cc2['cells_t'].argsort()], aspect='auto', interpolation=None)
-    # plt.show()
-    plt.savefig(directory_name+'/cc_data.pdf')
+        fig = plt.figure(figsize=(6, 6))
+        ax = fig.add_subplot(111)
+        plt.imshow(cc2['data'][:, cc2['cells_t'].argsort()], aspect='auto', interpolation=None)
+        # plt.show()
+        plt.savefig(directory_name+'/cc_data.pdf')
+    else:
+        cc2 = {'gene_names':[]}
+        # {'data':data, 'gene_names': gene_names, 'cells_by_state': cells_by_state, 'cc_graph': cc_graph, 'cells_t': cells_t}
 
     # Merge data
     ############
@@ -456,11 +452,12 @@ def generateDataset(n_cells, n_lin_states, n_genes_per_lin_state, n_cc_states, n
             data = np.vstack((data, lin_data_perm))
 
     # shuffle CC data
-    shuffling = np.random.permutation(range(n_cells))
-    cc_data_perm = cc2['data'][:, shuffling]
-    cc_state_status = cc_state_status[shuffling]
+    if n_cc_states > 0 and n_genes_per_cc_phase > 0:
+        shuffling = np.random.permutation(range(n_cells))
+        cc_data_perm = cc2['data'][:, shuffling]
+        cc_state_status = cc_state_status[shuffling]
 
-    data = np.vstack((data, cc_data_perm))
+        data = np.vstack((data, cc_data_perm))
 
     # Add unexpressed genes
     unexpressed_names = ['unexp'+str(i).zfill(5) for i in range(n_unexpressed_genes)]
@@ -488,9 +485,6 @@ def generateDataset(n_cells, n_lin_states, n_genes_per_lin_state, n_cc_states, n
     cell_names = ['cell' + str(i).zfill(5) for i in range(n_cells)]
     gene_order = np.random.permutation(range(data_noise.shape[0])) # shuffle gene order
 
-    # import pdb
-    # pdb.set_trace()
-
     all_gene_names = sum([sum([lin_list[i]['gene_names'] for i in range(len(lin_list))], []), cc2['gene_names'], unexpressed_names], [])
 
     assay_df = pd.DataFrame(data_noise[gene_order, :], index=[all_gene_names[i] for i in gene_order], columns=cell_names)
@@ -501,11 +495,12 @@ def generateDataset(n_cells, n_lin_states, n_genes_per_lin_state, n_cc_states, n
     pheno_df = pd.DataFrame({
                         'timepoint': tp,
                         'replicate_id': [1 for i in range(n_cells)],
-                        'treatment': ['_'.join('N' for i in range(int(tp[j]))) for j in range(n_cells)],
-                        # 'lin_state': lin_state_status,
-                        'cc_state': cc_state_status
-
+                        'treatment': ['_'.join('N' for i in range(int(tp[j]))) for j in range(n_cells)]
         }, index=cell_names)
+
+    if n_cc_states > 0 and n_genes_per_cc_phase > 0:
+        pheno_df['cc_state'] = cc_state_status
+
     for id in range(len(lin_list)):
         pheno_df['l'+'iouea'[id]+'n_state'] = lin_state_status[id]
 
