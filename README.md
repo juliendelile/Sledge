@@ -1,4 +1,4 @@
-# scRNAseq_Synthetic_Lineage_Generator
+# Synthetic LinEage Dataset GEnerator
 
 ...
 
