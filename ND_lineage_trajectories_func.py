@@ -334,7 +334,7 @@ def generateCellCycleData2(n_cells=171, n_cc_phases=7,
 
 
 
-def generateDataset(n_cells, n_lin_states, n_genes_per_lin_state, n_cc_states, n_genes_per_cc_phase, n_unexpressed_genes, p_branching, common_branch_ratio, n_genes_per_common_state, num_common_state, commithash):
+def generateDataset(n_cells, n_lin_states, n_genes_per_lin_state, n_cc_states, n_genes_per_cc_phase, n_unexpressed_genes, p_branching, common_branch_ratio, n_genes_per_common_state, num_common_state, commit_hash):
 
     # pdb.set_trace()
 
