@@ -6,6 +6,9 @@ from collections import OrderedDict, Counter
 import igraph
 import os
 import pandas as pd
+import pdb
+import json
+import copy
 
 
 def generateStateLineageTree(n_states=20, p_branching=.5, seed=12345,
@@ -331,9 +334,14 @@ def generateCellCycleData2(n_cells=171, n_cc_phases=7,
 
 
 
-def generateDataset(n_cells, n_lin_states, n_genes_per_lin_state, n_cc_states, n_genes_per_cc_phase, n_unexpressed_genes, p_branching, common_branch_ratio, n_genes_per_common_state, num_common_state):
+def generateDataset(n_cells, n_lin_states, n_genes_per_lin_state, n_cc_states, n_genes_per_cc_phase, n_unexpressed_genes, p_branching, common_branch_ratio, n_genes_per_common_state, num_common_state, commithash):
 
-    # import pdb; pdb.set_trace()
+    # pdb.set_trace()
+
+    # store arguments for writing json below
+    argmts = locals()
+    args_clean = copy.deepcopy(argmts)
+
 
     lin_names = [str(nls)+'x'+str(n_genes_per_lin_state[id])+'p'+str(p_branching[id])+'lin'+str(id) for id, nls in enumerate(n_lin_states)]
 
@@ -343,7 +351,10 @@ def generateDataset(n_cells, n_lin_states, n_genes_per_lin_state, n_cc_states, n
 
     if not os.path.exists(directory_name):
         os.mkdir(directory_name, 0755)
-    
+
+    with open(directory_name+'/settings.json', 'w') as outfile:
+        json.dump(args_clean, outfile, indent=4)
+
     import random
     r = lambda: random.randint(0,255)
     
