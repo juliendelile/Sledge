@@ -334,7 +334,7 @@ def generateCellCycleData2(n_cells=171, n_cc_phases=7,
 
 
 
-def generateDataset(n_cells, n_lin_states, n_genes_per_lin_state, n_cc_states, n_genes_per_cc_phase, n_unexpressed_genes, p_branching, common_branch_ratio, n_genes_per_common_state, num_common_state, commit_hash):
+def generateDataset(n_cells, n_lin_states, n_genes_per_lin_state, n_cc_states, n_genes_per_cc_phase, n_unexpressed_genes, p_branching, common_branch_ratio, n_genes_per_common_state, num_common_state, noise_intensity, commit_hash):
 
     # pdb.set_trace()
 
@@ -347,7 +347,7 @@ def generateDataset(n_cells, n_lin_states, n_genes_per_lin_state, n_cc_states, n
 
     lin_names2 = [l + '+' + str(num_common_state) + 'x' + str(n_genes_per_common_state) + 'r' + str(common_branch_ratio[i]) if common_branch_ratio[i] > 0 else l for i,l in enumerate(lin_names)]
 
-    directory_name = 'synthetic_data_' + "_".join(lin_names2) +  '_'+str(n_cc_states)+'x'+str(n_genes_per_cc_phase)+'cc_'+str(n_cells)+'cells_'+str(n_unexpressed_genes)+'unexp'
+    directory_name = 'synthetic_data_' + "_".join(lin_names2) +  '_'+str(n_cc_states)+'x'+str(n_genes_per_cc_phase)+'cc_'+str(n_cells)+'cells_'+str(n_unexpressed_genes)+'unexp_'+str(noise_intensity)+'noise'
 
     if not os.path.exists(directory_name):
         os.mkdir(directory_name, 0755)
@@ -477,7 +477,6 @@ def generateDataset(n_cells, n_lin_states, n_genes_per_lin_state, n_cc_states, n
     # Add technical noise
     #####################
 
-    noise_intensity = .5
     data_noise = data + noise_intensity * np.random.randn(data.shape[0], data.shape[1])
     data_noise[data_noise < 0] = 0
 
