@@ -334,7 +334,7 @@ def generateCellCycleData2(n_cells=171, n_cc_phases=7,
 
 
 
-def generateDataset(n_cells, n_lin_states, n_genes_per_lin_state, n_cc_states, n_genes_per_cc_phase, n_unexpressed_genes, p_branching, common_branch_ratio, n_genes_per_common_state, num_common_state, noise_intensity, commit_hash):
+def generateDataset(n_cells, n_lin_states, n_genes_per_lin_state, n_cc_states, n_genes_per_cc_phase, n_unexpressed_genes, p_branching, common_branch_ratio, n_genes_per_common_state, num_common_state, noise_intensity, commit_hash, seed):
 
     # pdb.set_trace()
 
@@ -369,7 +369,7 @@ def generateDataset(n_cells, n_lin_states, n_genes_per_lin_state, n_cc_states, n
 
     for id, nls in enumerate(n_lin_states):
 
-        lin_list.append(generateLineageData2(n_cells=n_cells, n_states=nls, n_genes_per_state=n_genes_per_lin_state[id], p_branching=p_branching[id], branch_ratio=common_branch_ratio[id], n_genes_per_common_state=n_genes_per_common_state, num_common_state=num_common_state, seed=1234, basename='l'+'iouea'[id]+'n'))
+        lin_list.append(generateLineageData2(n_cells=n_cells, n_states=nls, n_genes_per_state=n_genes_per_lin_state[id], p_branching=p_branching[id], branch_ratio=common_branch_ratio[id], n_genes_per_common_state=n_genes_per_common_state, num_common_state=num_common_state, seed=seed, basename='l'+'iouea'[id]+'n'))
 
         igraph.plot(lin_list[id]['state_tree'], directory_name+"/artificial_lineage_"+str(id)+".pdf",
                     layout=lin_list[id]['state_tree'].layout_reingold_tilford(root=[0]),
@@ -432,7 +432,7 @@ def generateDataset(n_cells, n_lin_states, n_genes_per_lin_state, n_cc_states, n
     if n_cc_states > 0 and n_genes_per_cc_phase > 0:
 
         cc2 = generateCellCycleData2(n_cells=n_cells, n_cc_phases=n_cc_states,
-                                           n_genes_per_phase=n_genes_per_cc_phase, seed=12345)
+                                           n_genes_per_phase=n_genes_per_cc_phase, seed=seed)
 
         cc_state_status = np.zeros((n_cells)).astype(int)
         for k, v in cc2['cells_by_state'].iteritems():
