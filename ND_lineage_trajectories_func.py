@@ -334,7 +334,7 @@ def generateCellCycleData2(n_cells=171, n_cc_phases=7,
 
 
 
-def generateDataset(n_cells, n_lin_states, n_genes_per_lin_state, n_cc_states, n_genes_per_cc_phase, n_unexpressed_genes, p_branching, common_branch_ratio, n_genes_per_common_state, num_common_state, noise_intensity, commit_hash, seed):
+def generateDataset(n_cells, n_lin_states, n_genes_per_lin_state, n_cc_states, n_genes_per_cc_phase, n_unexpressed_genes, p_branching, common_branch_ratio, n_genes_per_common_state, num_common_state, noise_intensity, commit_hash, seed, plot_size_factor=1):
 
     # pdb.set_trace()
 
@@ -372,9 +372,13 @@ def generateDataset(n_cells, n_lin_states, n_genes_per_lin_state, n_cc_states, n
         lin_list.append(generateLineageData2(n_cells=n_cells, n_states=nls, n_genes_per_state=n_genes_per_lin_state[id], p_branching=p_branching[id], branch_ratio=common_branch_ratio[id], n_genes_per_common_state=n_genes_per_common_state, num_common_state=num_common_state, seed=seed, basename='l'+'iouea'[id]+'n'))
 
         igraph.plot(lin_list[id]['state_tree'], directory_name+"/artificial_lineage_"+str(id)+".pdf",
-                    layout=lin_list[id]['state_tree'].layout_reingold_tilford(root=[0]),
-                    vertex_color=[scolors[i] for i in range(nls)]
-                    )
+            layout=lin_list[id]['state_tree'].layout_reingold_tilford(root=[0]),
+            vertex_color=[scolors[i] for i in range(nls)],
+            vertex_size=plot_size_factor*60,
+            vertex_label_size=plot_size_factor*30,
+            edge_width = 3,
+            margin = 100
+            )
 
     lin_state_status = list()
 
@@ -438,7 +442,12 @@ def generateDataset(n_cells, n_lin_states, n_genes_per_lin_state, n_cc_states, n
         for k, v in cc2['cells_by_state'].iteritems():
             cc_state_status[np.hstack(v.values())] = k
 
-        igraph.plot(cc2['cc_graph'], directory_name+"/cc_graph.pdf", vertex_color=[scolors[i] for i in range(n_cc_states)])
+        igraph.plot(cc2['cc_graph'], directory_name+"/cc_graph.pdf", vertex_color=[scolors[i] for i in range(n_cc_states)],
+                    vertex_size=60,
+                    vertex_label_size=30,
+                    edge_width = 3,
+                    margin = 100
+                    )
 
         fig = plt.figure(figsize=(6, 6))
         ax = fig.add_subplot(111)
