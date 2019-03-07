@@ -4,15 +4,15 @@ sys.path.append('/data/Work/Projets/Single_cells_GRN/synthetic_data')
 import ND_lineage_trajectories_func as ndlt
 import git
 
-# git commit version
-repo = git.Repo()
+# # git commit version
+# repo = git.Repo()
 
-if 'ND_lineage_trajectories_func.py' in [ item.a_path for item in repo.index.diff(None) ]:
-	print "commit changes first"
-	quit()
+# if 'ND_lineage_trajectories_func.py' in [ item.a_path for item in repo.index.diff(None) ]:
+# 	print "commit changes first"
+# 	quit()
 
-commit_hash = repo.head.object.hexsha[0:7]
-
+# commit_hash = repo.head.object.hexsha[0:7]
+commit_hash = "test"
 
 # Lineagity test: Lin Lon CC
 ndlt.generateDataset(
@@ -28,7 +28,8 @@ ndlt.generateDataset(
     num_common_state=0,
     noise_intensity=.5,
     commit_hash=commit_hash,
-    seed=1234
+    seed=1234,
+    plot_size_factor=1
     )
 
 # # Multiscale test: Common genes setup
@@ -44,7 +45,8 @@ ndlt.generateDataset(
 #     n_genes_per_common_state=6000,
 #     num_common_state=2,
 #     noise_intensity=.5,
-#     commit_hash=commit_hash
+#     commit_hash=commit_hash,
+#     seed=1234
 #     )
 
 # # Multiscale test: complex lineage
@@ -77,6 +79,24 @@ ndlt.generateDataset(
 #     n_genes_per_common_state=0,
 #     num_common_state=2,
 #     noise_intensity=1,
+#     commit_hash=commit_hash,
+#     seed=123,
+#     plot_size_factor=.5
+#     )
+
+# # Smoothing test: complex lineage with less noise (1 is as much as maximum expressed gene)
+# ndlt.generateDataset(
+#     n_cells = 1000,
+#     n_lin_states = [30],
+#     n_genes_per_lin_state = [300],
+#     n_cc_states = 0,
+#     n_genes_per_cc_phase = 0,
+#     n_unexpressed_genes = 2000,
+#     p_branching=[.5],
+#     common_branch_ratio=[0],
+#     n_genes_per_common_state=0,
+#     num_common_state=2,
+#     noise_intensity=.5,
 #     commit_hash=commit_hash,
 #     seed=123
 #     )

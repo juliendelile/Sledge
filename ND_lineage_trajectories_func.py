@@ -130,6 +130,7 @@ def generateLineageData2(n_cells=300,
 
     t_lineage_distance = t_lineage_distance + np.transpose(t_lineage_distance)
 
+
     # gaussKern = np.exp(-0.5/sigma**2 * t_lineage_distance * t_lineage_distance)
 
     # Cells branch by state
@@ -210,7 +211,7 @@ def generateLineageData2(n_cells=300,
 
         data = np.vstack((data, data_com))
 
-    return {'data': data, 'state_tree': lin_tree, 'cells_edgeid': cells_edgeid, 'cells_t': cells_t, 'cells_by_state': cells_by_state, 'gene_names': gene_names}
+    return {'data': data, 'state_tree': lin_tree, 'cells_edgeid': cells_edgeid, 'cells_t': cells_t, 'cells_by_state': cells_by_state, 'gene_names': gene_names, 'ldistance': t_lineage_distance}
 
 # Keeping temporal distance strategy similar to the lineage case, if we generalize later for any graph (circle or tree)
 def generateCellCycleData2(n_cells=171, n_cc_phases=7,
@@ -378,7 +379,7 @@ def generateDataset(n_cells, n_lin_states, n_genes_per_lin_state, n_cc_states, n
             vertex_label_size=plot_size_factor*30,
             edge_width = 3,
             margin = 100
-            )
+            )     
 
     lin_state_status = list()
 
@@ -402,6 +403,12 @@ def generateDataset(n_cells, n_lin_states, n_genes_per_lin_state, n_cc_states, n
 
         if id==0:
             cells_order_global = cells_order
+
+            # Plot lineage distance
+            fig = plt.figure(figsize=(6, 6))
+            ax = fig.add_subplot(111)
+            plt.matshow(lin_list[id]['ldistance'][cells_order, :][:, cells_order], aspect='auto', origin='upper', cmap=plt.cm.Oranges)
+            plt.savefig(directory_name+"/distance_lineage_"+str(id)+".pdf", bbox_inches='tight')
         
         # order by time only
         # cells_order = lin['cells_t'].argsort()
@@ -426,8 +433,6 @@ def generateDataset(n_cells, n_lin_states, n_genes_per_lin_state, n_cc_states, n
         plt.imshow(np.vstack((branch_status/float(n_lin_states[id]), lin['data']))[:, cells_order], aspect='auto', interpolation=None)
         plt.xticks(labels_pos, labels, rotation='vertical')
         plt.savefig(directory_name+'/artificial_data_lin'+str(id)+'.pdf')
-
-
 
     # Generate Cell Cycle data
     ##########################
