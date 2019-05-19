@@ -1,6 +1,7 @@
 
 import sys
-sys.path.append('/data/Work/Projets/Single_cells_GRN/synthetic_data')
+# sys.path.append('/data/Work/Projets/Single_cells_GRN/synthetic_data')
+sys.path.append('.')
 import ND_lineage_trajectories_func as ndlt
 import git
 
@@ -14,15 +15,33 @@ import git
 # commit_hash = repo.head.object.hexsha[0:7]
 commit_hash = "test"
 
-# Lineagity test: Lin Lon CC
+# # Lineagity test: Lin Lon CC
+# ndlt.generateDataset(
+#     n_cells = 200,
+#     n_lin_states = [10,3],
+#     n_genes_per_lin_state = [800, 1500],
+#     n_cc_states = 4,
+#     n_genes_per_cc_phase = 1000,
+#     n_unexpressed_genes = 2000,
+#     p_branching=[0.5, 0],
+#     common_branch_ratio=[0, 0],
+#     n_genes_per_common_state=0,
+#     num_common_state=0,
+#     noise_intensity=.5,
+#     commit_hash=commit_hash,
+#     seed=1234,
+#     plot_size_factor=1
+#     )
+
+# Lineagity test: Lin Lon CC for multiroot
 ndlt.generateDataset(
     n_cells = 1000,
-    n_lin_states = [10,3],
-    n_genes_per_lin_state = [800, 1500],
+    n_lin_states = [20,3],
+    n_genes_per_lin_state = [400, 1000],
     n_cc_states = 4,
     n_genes_per_cc_phase = 1000,
     n_unexpressed_genes = 2000,
-    p_branching=[0.5, 0],
+    p_branching=[0.3, 0],
     common_branch_ratio=[0, 0],
     n_genes_per_common_state=0,
     num_common_state=0,
