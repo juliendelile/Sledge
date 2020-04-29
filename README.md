@@ -16,7 +16,8 @@ The profiles are calculated according to the following principles:
 * A gaussian noise term is added to gene expression.
 * A set of unexpressed genes containing only gaussian noise can be integrated.
 
-[Illustration]
+<p align="center"><img src="schematic/schematic.png" width="100%"></p>
+<p align="center"><i>...</i></p>
 
 The synthetic dataset is stored as a set of csv files written in the working directory. The output folder also contains plots describing the cell state trajectories and heatmap representing the gene expression matrix.
 
