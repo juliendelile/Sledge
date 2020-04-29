@@ -17,7 +17,7 @@ The profiles are calculated according to the following principles:
 * A set of unexpressed genes containing only gaussian noise can be integrated.
 
 <p align="center"><img src="schematic/schematic.png" width="100%"></p>
-<p align="center"><i>...</i></p>
+<p align="center"><i>The synthetic dataset is build upon 4 sets of gene modules: the first set is associated with the bifurcating cell lineage (21 states/modules), the second set is related to a simpler process with two linear transitions (3 states/modules), the third is mapped to a cycling set of 4 states (e.g cell cycle phases), and the fourth to a group of unexpressed genes.</i></p>
 
 The synthetic dataset is stored as a set of csv files written in the working directory. The output folder also contains plots describing the cell state trajectories and heatmap representing the gene expression matrix.
 
