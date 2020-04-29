@@ -22,68 +22,34 @@ import copy
 import random
 
 
+
 def generate_dataset(
         n_cells=1000,
-        n_tree_states=[20, 3],
-        p_branching=[0.3, 0],
-        n_genes_per_tree_state=[200, 500],
+        n_lin_states=[20, 3],
+        n_genes_per_lin_state=[200, 500],
         n_cc_states=4,
-        n_genes_per_cc_state=500,
+        n_genes_per_cc_phase=500,
         n_unexpressed_genes=1000,
+        p_branching=[0.3, 0],
+        common_branch_ratio=[0, 0],
+        n_genes_per_common_state=0,
+        n_common_state=0,
         noise_intensity=0.3,
-        seed=123,
-        plot_size_factor=1):
-    """Generate a synthetic RNA-seq dataset.
-
-    This function generates gene expression profiles according to the
-    following assumptions:
-
-    * The genes are grouped into independent sets of modules.
-    * A module contains genes upregulated in a specific cell "state".
-    * Each set of gene modules is associated with a specific type of trajectories.
-    * The trajectories can be either:
-        * linear: gene expression is cascading in-between a linear sequence of
-        transitions between "cell states" (e.g. A->B, B->C between cell states
-        A, B and C).
-        * bifurcating: a state can be followed by two states (e.g. A->B, A->C).
-        * cycling: the genes are expressed along a cycle of states (A->B, B->C, C->A)
-    * The depth of the trajectory associated with the first set of modules
-    determines the temporal coordinates of the cells.
-    * Each gene profile follow a normal distribution along its trajectory.
-    * A gaussian noise term is added to gene expression.
-    * A set of unexpressed genes containing only gaussian noise can be integrated.
-
-    Args:
-        n_cells (int): the number of cells.
-        n_tree_states (list of int): each integer determines the number of states
-        composing a specific non-cycling trajectory. 
-        n_genes_per_tree_state (list of int): the number of genes associated with
-        each state of a non-cycling trajectory.
-        n_cc_states (int): the number of cell cycle states.
-        n_genes_per_cc_state (int): the number of genes associated with each
-        state of the cell cycle.
-        n_unexpressed_genes (int): the number of unexpressed genes.
-        p_branching (list of float): the probability that a (non-cyclic) state is
-        bifurcating. The sequence of transition is linear if equal to 0.
-        noise_intensity (float): weight scaling the amplitude of the gaussian
-        noise added to the gene expression levels.
-        seed (int): seed of the random number generator.
-        plot_size_factor (float): scaling factor of the labels in the plots.
-
-    Returns:
-        None. A set of csv files and plots are produced in the working
-            directory.
-    """
+        seed=1234,
+        plot_size_factor=0.5):
 
     # store arguments for writing json below
     argmts = locals()
     args_clean = copy.deepcopy(argmts)
 
-    lin_names = [str(nls)+'x'+str(n_genes_per_tree_state[id])+'p' +
-                 str(p_branching[id])+'lin'+str(id) for id, nls in enumerate(n_tree_states)]
+    lin_names = [str(nls)+'x'+str(n_genes_per_lin_state[id])+'p' +
+                 str(p_branching[id])+'lin'+str(id) for id, nls in enumerate(n_lin_states)]
 
-    directory_name = 'synthetic_data_' + "_".join(lin_names) + '_'+str(n_cc_states)+'x'+str(
-        n_genes_per_cc_state)+'cc_'+str(n_cells)+'cells_'+str(n_unexpressed_genes)+'unexp_'+str(noise_intensity)+'noise'
+    lin_names2 = [l + '+' + str(n_common_state) + 'x' + str(n_genes_per_common_state) + 'r' + str(
+        common_branch_ratio[i]) if common_branch_ratio[i] > 0 else l for i, l in enumerate(lin_names)]
+
+    directory_name = 'synthetic_data_' + "_".join(lin_names2) + '_'+str(n_cc_states)+'x'+str(
+        n_genes_per_cc_phase)+'cc_'+str(n_cells)+'cells_'+str(n_unexpressed_genes)+'unexp_'+str(noise_intensity)+'noise'
 
     if not os.path.exists(directory_name):
         os.mkdir(directory_name, 0o755)
@@ -103,23 +69,26 @@ def generate_dataset(
 
     lin_list = list()
 
-    for id, nls in enumerate(n_tree_states):
+    for id, nls in enumerate(n_lin_states):
 
         lin_list.append(generate_lineage_data(
             n_cells=n_cells,
             n_states=nls,
-            n_genes_per_state=n_genes_per_tree_state[id],
+            n_genes_per_state=n_genes_per_lin_state[id],
             p_branching=p_branching[id],
+            branch_ratio=common_branch_ratio[id],
+            n_genes_per_common_state=n_genes_per_common_state,
+            n_common_state=n_common_state,
             seed=seed,
             basename='l'+'iouea'[id]+'n'))
 
         igraph.plot(
-            lin_list[id]['state_tree'],
-            directory_name + "/artificial_lineage_"+str(id)+".pdf",
+            lin_list[id]['state_tree'], directory_name +
+            "/artificial_lineage_"+str(id)+".pdf",
             layout=lin_list[id]['state_tree'].layout_reingold_tilford(root=[0]),
             vertex_color=[scolors[i] for i in range(nls)],
-            vertex_size=plot_size_factor*30,
-            vertex_label_size=plot_size_factor*15,
+            vertex_size=plot_size_factor*60,
+            vertex_label_size=plot_size_factor*30,
             edge_width=3,
             margin=100)
 
@@ -156,7 +125,6 @@ def generate_dataset(
                         aspect='auto', origin='upper', cmap=plt.cm.Oranges)
             plt.savefig(directory_name+"/distance_lineage_" +
                         str(id)+".pdf", bbox_inches='tight')
-            plt.close(fig)
 
         # branch status for each cell
         branch_status = np.zeros((n_cells))
@@ -177,20 +145,19 @@ def generate_dataset(
 
         fig = plt.figure(figsize=(6, 6))
         ax = fig.add_subplot(111)
-        plt.imshow(np.vstack((branch_status/float(n_tree_states[id]), lin['data']))[
+        plt.imshow(np.vstack((branch_status/float(n_lin_states[id]), lin['data']))[
                    :, cells_order], aspect='auto', interpolation=None)
         plt.xticks(labels_pos, labels, rotation='vertical')
         plt.savefig(directory_name+'/artificial_data_lin'+str(id)+'.pdf')
-        plt.close(fig)
 
     # Generate Cell Cycle data
     ##########################
 
     # state status for each cell
-    if n_cc_states > 0 and n_genes_per_cc_state > 0:
+    if n_cc_states > 0 and n_genes_per_cc_phase > 0:
 
         cc2 = generate_cell_cycle_data(n_cells=n_cells, n_cc_phases=n_cc_states,
-                                       n_genes_per_phase=n_genes_per_cc_state, seed=seed)
+                                       n_genes_per_phase=n_genes_per_cc_phase, seed=seed)
 
         cc_state_status = np.zeros((n_cells)).astype(int)
         for k, v in cc2['cells_by_state'].items():
@@ -209,8 +176,6 @@ def generate_dataset(
                    aspect='auto', interpolation=None)
         # plt.show()
         plt.savefig(directory_name+'/cc_data.pdf')
-        plt.close(fig)
-
     else:
         cc2 = {'gene_names': []}
 
@@ -228,7 +193,7 @@ def generate_dataset(
             data = np.vstack((data, lin_data_perm))
 
     # shuffle CC data
-    if n_cc_states > 0 and n_genes_per_cc_state > 0:
+    if n_cc_states > 0 and n_genes_per_cc_phase > 0:
         shuffling = np.random.permutation(list(range(n_cells)))
         cc_data_perm = cc2['data'][:, shuffling]
         cc_state_status = cc_state_status[shuffling]
@@ -261,7 +226,6 @@ def generate_dataset(
                aspect='auto', interpolation=None)
     # plt.show()
     plt.savefig(directory_name+'/artificial_data.pdf')
-    plt.close(fig)
 
     # Export as ExpressionSet
     #########################
@@ -273,10 +237,8 @@ def generate_dataset(
     all_gene_names = sum([sum([lin_list[i]['gene_names'] for i in range(
         len(lin_list))], []), cc2['gene_names'], unexpressed_names], [])
 
-    assay_df = pd.DataFrame(
-        data_int[gene_order, :],
-        index=[all_gene_names[i] for i in gene_order],
-        columns=cell_names)
+    assay_df = pd.DataFrame(data_int[gene_order, :], index=[
+                            all_gene_names[i] for i in gene_order], columns=cell_names)
 
     assay_df.to_csv(directory_name + '/assayData.csv',
                     index=True, header=True, sep='\t')
@@ -288,7 +250,7 @@ def generate_dataset(
         'treatment': ['_'.join('N' for i in range(int(tp[j]))) for j in range(n_cells)]
     }, index=cell_names)
 
-    if n_cc_states > 0 and n_genes_per_cc_state > 0:
+    if n_cc_states > 0 and n_genes_per_cc_phase > 0:
         pheno_df['cc_state'] = cc_state_status
 
     for id in range(len(lin_list)):
@@ -303,7 +265,6 @@ def generate_dataset(
     plt.imshow(data_int[gene_order, :], aspect='auto', interpolation=None)
     # plt.show()
     plt.savefig(directory_name+'/artificial_data_shuffled.pdf')
-    plt.close(fig)
 
 
 def generate_lineage_tree(
@@ -363,7 +324,10 @@ def generate_lineage_data(
         p_branching=.5,
         seed=12345,
         filename=None,
-        basename='lin'):
+        basename='lin',
+        branch_ratio=.0,
+        n_genes_per_common_state=0,
+        n_common_state=2):
 
     np.random.seed(seed)
 
@@ -464,6 +428,52 @@ def generate_lineage_data(
 
                 data[(s * n_genes_per_state + g), :] = np.exp(-0.5/sigma**2 *
                                                               t_lineage_distance[g_cellmax[g], :] * t_lineage_distance[g_cellmax[g], :])
+
+    # Optional rule II: set of genes expressed commonly in different branches
+
+    if branch_ratio > 0:
+        # find leaves
+        tree_leaves = np.where(np.asarray(lin_tree.degree(mode='out')) == 0)[0]
+        # select the k longest branches, k given by ratio
+        leaves_branches = lin_tree.get_shortest_paths(v=0, to=tree_leaves)
+        leaves_branches_length = [[lin_tree.degree(
+            mode='all')[i] for i in lb][::-1].index(3) for lb in leaves_branches]
+        k = int(len(tree_leaves) * branch_ratio)
+        used_branches_id = np.argsort(leaves_branches_length)[-k:]
+        used_branches = [leaves_branches[i] for i in used_branches_id]
+
+        data_com = np.zeros(
+            (n_common_state * n_genes_per_common_state, n_cells))
+
+        for d in range(n_common_state):
+
+            s_cells_ids = np.random.choice(
+                list(range(1000)), size=n_genes_per_common_state, replace=True) / 1000.0
+
+            if d == 0:
+                s_cells = [cells_by_state[ub[-(d+1)]]['up']
+                           for ub in used_branches]
+            else:
+                s_cells = [np.hstack([cells_by_state[ub[-(d+1)]]['up'],
+                                      cells_by_state[ub[-(d+1)]]['down1']]) for ub in used_branches]
+
+            if min([len(sc) for sc in s_cells]) > 0:  # happens if many states and few cells
+
+                g_cellmaxs = [
+                    s_c[np.floor(len(s_c) * s_cells_ids).astype(int)] for s_c in s_cells]
+
+                gene_names = gene_names + ['com' + str(d).zfill(len(str(n_states))) + 'g' + str(
+                    i).zfill(len(str(n_genes_per_common_state))) for i in range(n_genes_per_common_state)]
+
+                for g in range(n_genes_per_common_state):
+
+                    data_com[(d * n_genes_per_common_state + g), :] = reduce(
+                        lambda x, y: x+y,
+                        [np.exp(-0.5/sigma**2 *
+                           t_lineage_distance[g_cellmax[g], :] * t_lineage_distance[g_cellmax[g], :])
+                         for g_cellmax in g_cellmaxs])
+
+        data = np.vstack((data, data_com))
 
     return {
         'data': data,
