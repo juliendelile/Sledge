@@ -25,7 +25,7 @@ The synthetic dataset is stored as a set of csv files written in the working dir
 Sledge can be installed with `pip`.
 
 ```
-pip install 
+pip install --upgrade https://github.com/juliendelile/Sledge/tarball/master
 ```
 
 ## How to Run
